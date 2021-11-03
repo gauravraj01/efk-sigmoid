@@ -1,0 +1,53 @@
+version: "3"
+services:
+  nginx:
+    image: nginx
+    container_name: nginx
+    ports:
+      - 8080:80
+    volumes:
+      - /home/sigmoid/Pictures/docker-test:/var/log/nginx
+    
+
+  filebeat:
+    image: docker.elastic.co/beats/filebeat:7.14.1
+    container_name: filebeat
+    volumes:
+      - /home/sigmoid/Pictures/docker-test/filebeat/filebeat.yml:/usr/share/filebeat/filebeat.yml:ro 
+      - /var/lib/docker/containers:/var/lib/docker/containers:ro 
+      - /var/run/docker.sock:/var/run/docker.sock:ro 
+      - /home/sigmoid/Pictures/docker-test:/var/log/nginx
+    entrypoint:
+      filebeat -e -strict.perms=false
+    links:
+      - elasticsearch
+      - kibana
+    
+  
+  elasticsearch:
+    image: docker.elastic.co/elasticsearch/elasticsearch:7.14.1
+    container_name: elasticsearch
+    environment:
+      - ES_JAVA_OPTS=-Xms1g -Xmx1g
+      - discovery.type=single-node
+    ports:
+      - 9200:9200
+    volumes:
+      - elasticsearch_data:/usr/share/elasticsearch/data
+    
+
+  kibana:
+    image: docker.elastic.co/kibana/kibana:7.14.1
+    container_name: kibana
+    ports:
+      - 5601:5601
+    environment:
+      ELASTICSEARCH_URL: "http://elasticsearch:9200"
+      username: "elastic"
+      password: "changeme%"
+    ports:
+      - 5601:5601
+    depends_on:
+      - elasticsearch
+volumes:
+  elasticsearch_data:
